@@ -96,29 +96,118 @@ Centralized server, multiple concurrent clients, TCP stream sockets, request–r
 
 ### 8.1 Success Responses
 
+All successful server responses begin with the keyword "OK" followed by the status code:
+Each client request results in exactly one server response.
+
+ex.
+OK NOTE_POSTED
+OK PIN_ADDED
+OK PIN_REMOVED
+OK SHAKE_COMPLETE
+OK CLEAR_COMPLETE
+
+Data-bearing responses are used for GET commands and consist of:
+
+- An initial OK [n] line, where n is the number of result entries.
+- Exactly n subsequent lines, each describing a returned object.
+
+ex.
+OK 2
+PIN 15 12
+PIN 18 15
+
 ### 8.2 Error Responses
 
----
+All error responses begin with the keyword "ERROR" and indicate that the requested operation was not performed, also followed by an error code.
+
+ex.
+ERROR OUT_OF_BOUNDS Note exceeds board boundaries
+ERROR COLOR_NOT_SUPPORTED blue is not a valid color
 
 ## 9. Error Handling
 
 ### 9.1 Error Classification
 
+The server recognizes and reports the following error types:
+
+INVALID_FORMAT: 
+The request does not conform to the required command syntax or is missing required fields.
+
+OUT_OF_BOUNDS: 
+A note or coordinate lies partially or entirely outside the board boundaries.
+
+COLOR_NOT_SUPPORTED: 
+The specified note color is not in the server’s startup color list.
+
+COMPLETE_OVERLAP: 
+A posted note would exactly overlap an existing note.
+
+NO_NOTE_AT_COORDINATE: 
+A PIN command targets a coordinate that is not contained within any note.
+
+PIN_NOT_FOUND: 
+An UNPIN command targets a coordinate with no existing pin.
+
+These error codes are exhaustive for all protocol-level validation failures.
+
 ### 9.2 Client-Side Responsibilities
+
+Clients are expected to perform basic validation before sending requests, including:
+
+- Ensuring required parameters are present
+- Preventing malformed commands
+- Restricting color selection to server-provided values
+- Ensuring numeric fields are integers
+
+Client-side validation improves usability but is not relied upon for correctness.
 
 ### 9.3 Server-Side Responsibilities
 
----
+The server is the final authority on protocol correctness and must:
+
+- Validate all incoming requests regardless of client behavior
+- Detect and report all invalid conditions using structured ERROR responses
+- Never crash or terminate due to malformed or malicious client input
+- Preserve board consistency by rejecting invalid operations
+
+The server must guarantee that invalid requests have no side effects.
 
 ## 10. Concurrency and Synchronization
 
 ### 10.1 Multithreading Model
 
+The server uses a thread-per-client model:
+
+- Each client connection is handled by a dedicated worker thread
+- All threads share access to the centralized board state
+- Requests are processed sequentially per client, but concurrently across clients
+
+This model enables multiple clients to interact with the board simultaneously.
+
 ### 10.2 Shared Data Protection
+
+All shared server data structures, including:
+
+- The list of notes
+- The set of pins
+
+are protected using synchronization mechanisms to prevent race conditions.
+
+Operations that modify shared state (POST, PIN, UNPIN, SHAKE, CLEAR) are executed within critical sections to ensure thread safety.
+
+Atomic operations are enforced using mutual exclusion.
 
 ### 10.3 Consistency Guarantees
 
----
+The server provides strong consistency guarantees:
+
+- Each command is processed atomically
+- Clients never observe partially applied operations
+- For atomic commands such as SHAKE and CLEAR, clients observe either:
+    - the complete state before the operation, or
+    - the complete state after the operation
+
+Interleaving effects from concurrent clients do not result in inconsistent or undefined board states.
 
 ## 11. Border and Failure Cases
 
