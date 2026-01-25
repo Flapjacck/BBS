@@ -93,7 +93,6 @@ public class ProtocolHandler {
     /**
      * PIN command: PIN <x> <y>
      */
-    @SuppressWarnings("unused")
     private static ProtocolResponse handlePin(String[] parts) {
         if (parts.length != 3) {
             return ProtocolResponse.error("INVALID_FORMAT", "PIN requires: x y");
@@ -114,7 +113,6 @@ public class ProtocolHandler {
     /**
      * UNPIN command: UNPIN <x> <y>
      */
-    @SuppressWarnings("unused")
     private static ProtocolResponse handleUnpin(String[] parts) {
         if (parts.length != 3) {
             return ProtocolResponse.error("INVALID_FORMAT", "UNPIN requires: x y");
