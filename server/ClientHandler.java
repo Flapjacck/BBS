@@ -35,8 +35,14 @@ public class ClientHandler implements Runnable {
                 // Log the request
                 System.out.println("Request from " + clientIP + ": " + clientRequest);
 
-                // Send response (placeholder)
-                output.println("OK");
+                // Process the command using protocol handler
+                ProtocolResponse response = ProtocolHandler.processCommand(clientRequest);
+                output.println(response.toString());
+
+                // Handle DISCONNECT command by breaking the loop
+                if (response.isDisconnect()) {
+                    break;
+                }
             }
 
         } catch (IOException e) {
