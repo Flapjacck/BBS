@@ -315,106 +315,122 @@ Terminate the client session.
 
 ### 8.1 Success Responses
 
-All successful server responses begin with the keyword "OK" followed by the status code:
-Each client request results in exactly one server response.
+**Overview:**  
+All successful server responses begin with the keyword `OK` followed by a status code. Each client request results in exactly one server response.
 
-ex.
+**Examples (Simple Responses):**
+
+```bnf
 OK NOTE_POSTED
 OK PIN_ADDED
 OK PIN_REMOVED
 OK SHAKE_COMPLETE
 OK CLEAR_COMPLETE
+```
 
+**Data-Bearing Responses:**  
 Data-bearing responses are used for GET commands and consist of:
 
-- An initial OK [n] line, where n is the number of result entries.
-- Exactly n subsequent lines, each describing a returned object.
+- An initial `OK [n]` line, where n is the number of result entries
+- Exactly n subsequent lines, each describing a returned object
 
-ex.
+**Example (GET with Results):**
+
+```bnf
 OK 2
 PIN 15 12
 PIN 18 15
+```
 
 ### 8.2 Error Responses
 
-All error responses begin with the keyword "ERROR" and indicate that the requested operation was not performed, also followed by an error code.
+**Overview:**  
+All error responses begin with the keyword `ERROR` and indicate that the requested operation was not performed. Each error includes an error code and descriptive message.
 
-ex.
+**Format:**  
+`ERROR <error-code> <error-message>`
+
+**Examples:**
+
+```bnf
 ERROR OUT_OF_BOUNDS Note exceeds board boundaries
 ERROR COLOR_NOT_SUPPORTED blue is not a valid color
+```
 
 ## 9. Error Handling
 
 ### 9.1 Error Classification
 
+**Overview:**  
 The server recognizes and reports the following error types:
 
-INVALID_FORMAT: 
+**INVALID_FORMAT**
 The request does not conform to the required command syntax or is missing required fields.
 
-OUT_OF_BOUNDS: 
+**OUT_OF_BOUNDS**  
 A note or coordinate lies partially or entirely outside the board boundaries.
 
-COLOR_NOT_SUPPORTED: 
+**COLOR_NOT_SUPPORTED**  
 The specified note color is not in the server’s startup color list.
 
-COMPLETE_OVERLAP: 
+**COMPLETE_OVERLAP**  
 A posted note would exactly overlap an existing note.
 
-NO_NOTE_AT_COORDINATE: 
+**NO_NOTE_AT_COORDINATE**  
 A PIN command targets a coordinate that is not contained within any note.
 
-PIN_NOT_FOUND: 
+**PIN_NOT_FOUND**  
 An UNPIN command targets a coordinate with no existing pin.
 
+**Note:**  
 These error codes are exhaustive for all protocol-level validation failures.
 
 ### 9.2 Client-Side Responsibilities
 
-Clients are expected to perform basic validation before sending requests, including:
+The client should perform basic validation before sending requests to improve user experience:
 
-- Ensuring required parameters are present
-- Preventing malformed commands
-- Restricting color selection to server-provided values
-- Ensuring numeric fields are integers
+- Ensure required parameters are present
+- Prevent malformed commands
+- Restrict color selection to server-provided values
+- Ensure numeric fields are valid integers
 
-Client-side validation improves usability but is not relied upon for correctness.
+**Important:**  
+Client-side validation improves usability but is not relied upon for correctness. The server is always the final authority.
 
 ### 9.3 Server-Side Responsibilities
 
-The server is the final authority on protocol correctness and must:
+The server is the final authority on protocol correctness and must enforce all validation rules:
 
 - Validate all incoming requests regardless of client behavior
-- Detect and report all invalid conditions using structured ERROR responses
+- Detect and report all invalid conditions using structured `ERROR` responses
 - Never crash or terminate due to malformed or malicious client input
 - Preserve board consistency by rejecting invalid operations
-
-The server must guarantee that invalid requests have no side effects.
+- Guarantee that invalid requests have no side effects
 
 ## 10. Concurrency and Synchronization
 
 ### 10.1 Multithreading Model
 
+**Model Description:**  
 The server uses a thread-per-client model:
 
 - Each client connection is handled by a dedicated worker thread
 - All threads share access to the centralized board state
 - Requests are processed sequentially per client, but concurrently across clients
 
+**Benefit:**  
 This model enables multiple clients to interact with the board simultaneously.
 
 ### 10.2 Shared Data Protection
 
-All shared server data structures, including:
+**Protected Resources:**  
+All shared server data structures are protected using synchronization mechanisms to prevent race conditions:
 
 - The list of notes
 - The set of pins
 
-are protected using synchronization mechanisms to prevent race conditions.
-
-Operations that modify shared state (POST, PIN, UNPIN, SHAKE, CLEAR) are executed within critical sections to ensure thread safety.
-
-Atomic operations are enforced using mutual exclusion.
+**Synchronization Strategy:**  
+Operations that modify shared state (`POST`, `PIN`, `UNPIN`, `SHAKE`, `CLEAR`) are executed within critical sections to ensure thread safety. Atomic operations are enforced using mutual exclusion.
 
 ### 10.3 Consistency Guarantees
 
@@ -422,21 +438,93 @@ The server provides strong consistency guarantees:
 
 - Each command is processed atomically
 - Clients never observe partially applied operations
-- For atomic commands such as SHAKE and CLEAR, clients observe either:
-    - the complete state before the operation, or
-    - the complete state after the operation
+- For atomic commands such as `SHAKE` and `CLEAR`, clients observe either:
+  - The complete state before the operation, or
+  - The complete state after the operation
 
+**Invariant:**  
 Interleaving effects from concurrent clients do not result in inconsistent or undefined board states.
 
 ## 11. Border and Failure Cases
+
+This section specifies protocol behavior under boundary and failure conditions to ensure predictable and robust system operation.
+
+### 11.1 Empty Board
+
+- A newly started server contains an empty board with no notes and no pins.
+- `GET` requests return `OK 0` with no subsequent data lines.
+- `GET PINS` returns `OK 0`.
+- `PIN` and `UNPIN` requests always return an error (`NO_NOTE_AT_COORDINATE` or `PIN_NOT_FOUND` respectively).
+
+### 11.2 Empty Query Results
+
+- If a `GET` request matches no notes, the server responds with:
+  - `OK 0`
+  - No additional result lines follow.
+
+### 11.3 Server Running with No Clients
+
+- The server maintains an empty board state until at least one client connects.
+- Board dimensions, note dimensions, and valid colors are sent only upon client connection.
+
+### 11.4 Client Disconnecting Mid-Session
+
+- If a client disconnects unexpectedly:
+  - The server releases all associated resources.
+  - No partial command effects are applied.
+  - Shared board state remains consistent.
+
+### 11.5 Server Shutdown
+
+- All client connections are closed.
+- Board state is discarded (non-persistent).
+- Clients must reconnect after restart and reinitialize state.
 
 ---
 
 ## 12. Security Considerations
 
+This system is designed for an academic, trusted-network environment. Formal cryptographic security is out of scope; however, the following protections are enforced:
+
+### 12.1 Input Validation
+
+- All client input is validated server-side.
+- Malformed commands are rejected with `INVALID_FORMAT`.
+- Out-of-range coordinates, invalid colors, and illegal overlaps are rejected.
+
+### 12.2 Denial of Service Considerations
+
+- Each client is handled in its own thread.
+- Input parsing prevents infinite loops or buffer overflow.
+- Requests are processed atomically to prevent inconsistent shared state.
+
+### 12.3 Trust Assumptions
+
+- No authentication or encryption is implemented.
+- The protocol assumes cooperative clients within a controlled lab environment.
+
 ---
 
 ## 13. Implementation Notes (Non-Normative)
+
+This section documents design decisions and limitations that do not affect protocol compliance.
+
+### 13.1 Synchronization Strategy
+
+- All board-modifying commands (`POST`, `PIN`, `UNPIN`, `SHAKE`, `CLEAR`) are executed within synchronized critical sections.
+- This guarantees atomic visibility and prevents race conditions.
+
+### 13.2 Atomic Operations
+
+- `SHAKE` and `CLEAR` are implemented as single critical transactions.
+- No intermediate state is visible to concurrent clients.
+
+### 13.3 Limitations
+
+- Board state is memory-only and non-persistent.
+- No authentication or access control.
+- No message batching or streaming responses.
+- GUI design is not standardized by the protocol.
 
 ---
 
@@ -452,6 +540,66 @@ Interleaving effects from concurrent clients do not result in inconsistent or un
 
 ## Appendix A: Example Message Exchanges
 
+### A.1 Successful POST
+
+Client → Server:  
+POST 10 5 yellow Team meeting at 3pm  
+
+Server → Client:  
+OK NOTE_POSTED  
+
+### A.2 GET with Filters
+
+Client → Server:  
+GET color=yellow refersTo=meeting  
+
+Server → Client:  
+OK 1  
+NOTE 10 5 yellow Team meeting at 3pm  
+
+### A.3 PIN and UNPIN
+
+Client → Server:  
+PIN 12 7  
+
+Server → Client:  
+OK PIN_ADDED  
+
+Client → Server:  
+UNPIN 12 7  
+
+Server → Client:  
+OK PIN_REMOVED  
+
+### A.4 Error Example
+
+Client → Server:  
+PIN 300 400  
+
+Server → Client:  
+ERROR NO_NOTE_AT_COORDINATE No note exists at the specified coordinate  
+
+### A.5 Concurrent Atomic SHAKE
+
+Client A → Server:  
+SHAKE  
+
+Client B (simultaneously) → Server:  
+GET  
+
+Client B receives either:
+
+- Full board before SHAKE  
+or  
+- Fully cleared unpinned board after SHAKE  
+but never a partial state.
+
 ---
 
 ## Appendix B: Revision History
+
+Version history:
+
+<https://github.com/Flapjacck/BBS/commits/main/>
+
+All tracked via Git commits.
