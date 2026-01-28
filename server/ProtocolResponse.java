@@ -36,6 +36,13 @@ public class ProtocolResponse {
     }
 
     /**
+     * Successful OK response with a status message (e.g., OK NOTE_POSTED)
+     */
+    public static ProtocolResponse okWithStatus(String status) {
+        return new ProtocolResponse(true, status, null, false);
+    }
+
+    /**
      * Successful OK response that signals disconnection
      */
     public static ProtocolResponse okDisconnect() {
@@ -69,6 +76,9 @@ public class ProtocolResponse {
     @Override
     public String toString() {
         if (success) {
+            if (errorCode != null) {
+                return "OK " + errorCode; // errorCode used as status for OK responses
+            }
             return "OK";
         } else {
             return "ERROR " + errorCode + " " + errorMessage;

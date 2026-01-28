@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A simple bulletin board server implementation to demonstrate socket
@@ -22,6 +24,25 @@ import java.net.*;
 public final class Server {
     // Volatile flag to allow graceful shutdown
     private static volatile boolean running = true;
+
+    // Board configuration per RFC Section 4.2
+    private static final int BOARD_WIDTH = 800;
+    private static final int BOARD_HEIGHT = 600;
+    private static final int NOTE_WIDTH = 100;
+    private static final int NOTE_HEIGHT = 100;
+
+    // Valid colors per RFC Section 4.3
+    private static Set<String> getValidColors() {
+        Set<String> colors = new HashSet<>();
+        colors.add("yellow");
+        colors.add("blue");
+        colors.add("green");
+        colors.add("pink");
+        colors.add("orange");
+        colors.add("purple");
+        colors.add("white");
+        return colors;
+    }
 
     public static void main(String argv[]) throws Exception {
         // Get the port number from the command line
@@ -49,6 +70,11 @@ public final class Server {
             System.out.println("Press Ctrl+C to stop the server");
             System.out.println("---------------------------------------------------");
 
+            // Create shared board instance per RFC Section 10.2
+            Board board = new Board(BOARD_WIDTH, BOARD_HEIGHT, NOTE_WIDTH, NOTE_HEIGHT, getValidColors());
+            System.out.println("Board initialized: " + BOARD_WIDTH + "x" + BOARD_HEIGHT +
+                    " (notes: " + NOTE_WIDTH + "x" + NOTE_HEIGHT + ")");
+
             // Step 2: Process client requests in an infinite loop
             while (running) {
                 try {
@@ -61,8 +87,8 @@ public final class Server {
                     String clientIP = clientConnection.getInetAddress().getHostAddress();
 
                     // Step 3: Create a ClientHandler object to handle this specific request
-                    // Pass the client socket to the request handler
-                    ClientHandler request = new ClientHandler(clientConnection, clientIP);
+                    // Pass the client socket and shared board to the request handler
+                    ClientHandler request = new ClientHandler(clientConnection, clientIP, board);
 
                     // Step 4: Create a new thread to process the request
                     // This is crucial because accept() is blocking
