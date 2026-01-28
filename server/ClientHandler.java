@@ -12,10 +12,14 @@ import java.net.Socket;
 public class ClientHandler implements Runnable {
     private Socket socket;
     private String clientIP;
+    private Board board;
+    private ProtocolHandler protocolHandler;
 
-    public ClientHandler(Socket socket, String clientIP) {
+    public ClientHandler(Socket socket, String clientIP, Board board) {
         this.socket = socket;
         this.clientIP = clientIP;
+        this.board = board;
+        this.protocolHandler = new ProtocolHandler(board);
     }
 
     @Override
@@ -36,10 +40,10 @@ public class ClientHandler implements Runnable {
                 System.out.println("Request from " + clientIP + ": " + clientRequest);
 
                 // Process the command using protocol handler
-                ProtocolResponse response = ProtocolHandler.processCommand(clientRequest);
+                ProtocolResponse response = protocolHandler.processCommand(clientRequest);
                 output.println(response.toString());
 
-                // Handle DISCONNECT command by breaking the loop
+                // Handle DISCONNECT
                 if (response.isDisconnect()) {
                     break;
                 }
