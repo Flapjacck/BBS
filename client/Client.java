@@ -1,17 +1,38 @@
+package client;
 
 import javax.swing.*;
 
-// Simple bulletin board client launcher
+/**
+ * Bulletin board client launcher.
+ * Connects to server and launches GUI.
+ */
 public class Client {
+    private ClientConnection connection;
+    private Board board;
 
     public Client() {
-        // Launch the bulletin board
-        new Board();
+        connection = new ClientConnection();
+
+        // Try to connect to server
+        if (!connection.connect()) {
+            JOptionPane.showMessageDialog(null,
+                    "Could not connect to server at localhost:4200.\nMake sure the server is running.",
+                    "Connection Failed", JOptionPane.ERROR_MESSAGE);
+        }
+
+        // Launch the GUI with connection
+        board = new Board(connection);
+
+        // Disconnect on window close
+        board.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                connection.disconnect();
+            }
+        });
     }
 
-    // Main entry point
     public static void main(String[] args) {
-        // Launch on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> new Client());
     }
 }
