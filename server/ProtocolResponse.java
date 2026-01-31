@@ -43,6 +43,13 @@ public class ProtocolResponse {
     }
 
     /**
+     * Successful OK response with data (e.g., GET returns "OK n" + data lines)
+     */
+    public static ProtocolResponse okWithData(String data) {
+        return new ProtocolResponse(true, data, null, false);
+    }
+
+    /**
      * Successful OK response that signals disconnection
      */
     public static ProtocolResponse okDisconnect() {
@@ -77,7 +84,12 @@ public class ProtocolResponse {
     public String toString() {
         if (success) {
             if (errorCode != null) {
-                return "OK " + errorCode; // errorCode used as status for OK responses
+                // errorCode used as status/data for OK responses
+                // Check if it starts with a number (GET response format "OK n")
+                if (errorCode.matches("^\\d+.*")) {
+                    return errorCode; // Already contains "OK n\ndata..."
+                }
+                return "OK " + errorCode;
             }
             return "OK";
         } else {

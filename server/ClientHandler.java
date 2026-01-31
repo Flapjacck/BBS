@@ -12,13 +12,11 @@ import java.net.Socket;
 public class ClientHandler implements Runnable {
     private Socket socket;
     private String clientIP;
-    private Board board;
     private ProtocolHandler protocolHandler;
 
     public ClientHandler(Socket socket, String clientIP, Board board) {
         this.socket = socket;
         this.clientIP = clientIP;
-        this.board = board;
         this.protocolHandler = new ProtocolHandler(board);
     }
 

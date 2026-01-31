@@ -62,11 +62,65 @@ public class ProtocolHandler {
     }
 
     /**
-     * GET command: GET [color=<color>] [contains=<text>] [refersTo=<x>,<y>]
+     * GET command: GET PINS or GET [color=<color>] [contains=<x> <y>]
+     * [refersTo=<substring>]
      */
     private ProtocolResponse handleGet(String[] parts) {
-        // TODO: Implement note retrieval with filtering
-        return ProtocolResponse.ok();
+        // Special case: GET PINS
+        if (parts.length == 2 && parts[1].equalsIgnoreCase("PINS")) {
+            java.util.List<int[]> pins = board.getPins();
+            StringBuilder response = new StringBuilder("OK " + pins.size());
+            for (int[] pin : pins) {
+                response.append("\n").append(pin[0]).append(" ").append(pin[1]);
+            }
+            return ProtocolResponse.okWithData(response.toString());
+        }
+
+        // Parse filters for GET notes
+        String colorFilter = null;
+        Integer containsX = null;
+        Integer containsY = null;
+        String refersTo = null;
+
+        // Parse remaining parts for filters
+        for (int i = 1; i < parts.length; i++) {
+            String part = parts[i];
+
+            if (part.startsWith("color=")) {
+                colorFilter = part.substring(6);
+            } else if (part.startsWith("contains=")) {
+                // contains=x y format
+                try {
+                    String coords = part.substring(9);
+                    String[] xy = coords.split("\\s+");
+                    if (xy.length >= 2) {
+                        containsX = Integer.parseInt(xy[0]);
+                        containsY = Integer.parseInt(xy[1]);
+                    } else if (i + 1 < parts.length) {
+                        // Handle "contains= x y" with space after =
+                        containsX = Integer.parseInt(coords);
+                        containsY = Integer.parseInt(parts[++i]);
+                    }
+                } catch (NumberFormatException e) {
+                    return ProtocolResponse.error("INVALID_FORMAT", "Invalid contains coordinates");
+                }
+            } else if (part.startsWith("refersTo=")) {
+                // Collect remaining text as refersTo value
+                refersTo = part.substring(9);
+                // Append remaining parts as they're part of the message
+                while (i + 1 < parts.length) {
+                    refersTo += " " + parts[++i];
+                }
+            }
+        }
+
+        // Get filtered notes
+        java.util.List<Note> notes = board.getNotes(colorFilter, containsX, containsY, refersTo);
+        StringBuilder response = new StringBuilder("OK " + notes.size());
+        for (Note note : notes) {
+            response.append("\n").append(note.toString());
+        }
+        return ProtocolResponse.okWithData(response.toString());
     }
 
     /**
@@ -81,8 +135,12 @@ public class ProtocolHandler {
             int x = Integer.parseInt(parts[1]);
             int y = Integer.parseInt(parts[2]);
 
-            // TODO: Implement pin placement logic
-            return ProtocolResponse.ok();
+            String error = board.addPin(x, y);
+            if (error != null) {
+                return ProtocolResponse.error(error, "Cannot place pin");
+            }
+
+            return ProtocolResponse.okWithStatus("PIN_ADDED");
 
         } catch (NumberFormatException e) {
             return ProtocolResponse.error("INVALID_FORMAT", "Invalid numeric coordinates");
@@ -101,8 +159,12 @@ public class ProtocolHandler {
             int x = Integer.parseInt(parts[1]);
             int y = Integer.parseInt(parts[2]);
 
-            // TODO: Implement pin removal logic
-            return ProtocolResponse.ok();
+            String error = board.removePin(x, y);
+            if (error != null) {
+                return ProtocolResponse.error(error, "Cannot remove pin");
+            }
+
+            return ProtocolResponse.okWithStatus("PIN_REMOVED");
 
         } catch (NumberFormatException e) {
             return ProtocolResponse.error("INVALID_FORMAT", "Invalid numeric coordinates");
@@ -117,8 +179,8 @@ public class ProtocolHandler {
             return ProtocolResponse.error("INVALID_FORMAT", "SHAKE takes no parameters");
         }
 
-        // TODO: Implement note shuffling logic
-        return ProtocolResponse.ok();
+        board.removeUnpinnedNotes();
+        return ProtocolResponse.okWithStatus("SHAKE_COMPLETE");
     }
 
     /**
