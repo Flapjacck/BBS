@@ -32,8 +32,9 @@ public class ProtocolHandler {
      * @return ProtocolResponse indicating success/failure and any error details
      */
     public ProtocolResponse processCommand(String command) {
+        // Ignore empty lines - return null to signal no response needed
         if (command == null || command.trim().isEmpty()) {
-            return ProtocolResponse.error("INVALID_FORMAT", "Empty command");
+            return null;
         }
 
         // Split command into parts for parsing

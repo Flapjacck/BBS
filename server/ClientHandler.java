@@ -31,6 +31,9 @@ public class ClientHandler implements Runnable {
 
             System.out.println("Client connected: " + clientIP);
 
+            // Send initial handshake with board configuration
+            sendBoardConfiguration(output);
+
             // Read messages from the client
             String clientRequest;
             while ((clientRequest = input.readLine()) != null) {
@@ -39,11 +42,15 @@ public class ClientHandler implements Runnable {
 
                 // Process the command using protocol handler
                 ProtocolResponse response = protocolHandler.processCommand(clientRequest);
-                output.println(response.toString());
 
-                // Handle DISCONNECT
-                if (response.isDisconnect()) {
-                    break;
+                // Only send response if command was not ignored (null = empty line)
+                if (response != null) {
+                    output.println(response.toString());
+
+                    // Handle DISCONNECT
+                    if (response.isDisconnect()) {
+                        break;
+                    }
                 }
             }
 
@@ -58,5 +65,15 @@ public class ClientHandler implements Runnable {
                 System.err.println("Error closing socket: " + e.getMessage());
             }
         }
+    }
+
+    /**
+     * Send board configuration to client upon connection.
+     * Allows client to know board dimensions, note size, and valid colors.
+     */
+    private void sendBoardConfiguration(PrintWriter output) {
+        // Format: BOARD_CONFIG width height noteWidth noteHeight color1,color2,...
+        String config = "BOARD_CONFIG 800 600 100 100 yellow,blue,green,pink,orange,purple,white";
+        output.println(config);
     }
 }
