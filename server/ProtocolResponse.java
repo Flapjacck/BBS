@@ -84,11 +84,12 @@ public class ProtocolResponse {
     public String toString() {
         if (success) {
             if (errorCode != null) {
-                // errorCode used as status/data for OK responses
-                // Check if it starts with a number (GET response format "OK n")
-                if (errorCode.matches("^\\d+.*")) {
-                    return errorCode; // Already contains "OK n\ndata..."
+                // errorCode field holds either status text or multi-line data
+                if (errorCode.startsWith("OK")) {
+                    // Already formatted with OK prefix (from okWithData for GET)
+                    return errorCode;
                 }
+                // Status message format (e.g., NOTE_POSTED, PIN_ADDED)
                 return "OK " + errorCode;
             }
             return "OK";
