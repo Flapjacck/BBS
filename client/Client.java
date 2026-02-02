@@ -1,5 +1,3 @@
-package client;
-
 import javax.swing.*;
 
 /**
@@ -8,7 +6,7 @@ import javax.swing.*;
  */
 public class Client {
     private ClientConnection connection;
-    private Board board;
+    private ClientBoard board;
 
     public Client() {
         connection = new ClientConnection();
@@ -21,7 +19,7 @@ public class Client {
         }
 
         // Launch the GUI with connection
-        board = new Board(connection);
+        board = new ClientBoard(connection);
 
         // Disconnect on window close
         board.addWindowListener(new java.awt.event.WindowAdapter() {

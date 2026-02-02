@@ -5,16 +5,13 @@ A simple bulletin board system with a Java TCP server and Swing GUI client.
 ## Run Server
 
 ```bash
-cd server
-javac *.java
+# Compile
+javac -d . client/*.java server/*.java
+
+# Start Server
 java Server
-```
 
-## Run Client
-
-```bash
-cd client
-javac *.java
+# Start Client
 java Client
 ```
 

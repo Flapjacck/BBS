@@ -1,16 +1,14 @@
-package client;
-
 import javax.swing.*;
 import java.awt.*;
 
-public class Board extends JFrame {
+public class ClientBoard extends JFrame {
     private ClientConnection connection;
     private JTextArea outputArea;
     private JTextField postX, postY, postMsg, getColor, getX, getY, getRef, pinX, pinY;
     private JComboBox<String> postColor;
     private static final String[] COLORS = { "yellow", "blue", "green", "pink", "orange", "purple", "white" };
 
-    public Board(ClientConnection connection) {
+    public ClientBoard(ClientConnection connection) {
         this.connection = connection;
         setTitle("BBS Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
