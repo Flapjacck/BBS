@@ -24,11 +24,11 @@ public class ClientBoard extends JFrame {
 
         JPanel main = new JPanel(new BorderLayout(10, 10));
         main.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // Left panel: Controller
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBorder(BorderFactory.createTitledBorder("Controller"));
-        
+
         JPanel commands = new JPanel(new GridLayout(5, 1, 5, 5));
 
         // POST panel
@@ -106,7 +106,7 @@ public class ClientBoard extends JFrame {
 
         leftPanel.add(commands, BorderLayout.NORTH);
         leftPanel.add(scroll, BorderLayout.CENTER);
-        
+
         // Right panel: Visual Board
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(BorderFactory.createTitledBorder("Board (800x600)"));
@@ -118,7 +118,7 @@ public class ClientBoard extends JFrame {
         main.add(rightPanel, BorderLayout.CENTER);
         setContentPane(main);
         setVisible(true);
-        
+
         // Initial board fetch
         SwingUtilities.invokeLater(() -> refreshBoardState());
     }
@@ -169,10 +169,10 @@ public class ClientBoard extends JFrame {
                     } else if (command.equals("GET PINS") && response.startsWith("OK")) {
                         // For GET PINS, merge with existing notes
                         parseAndMergePins(response);
-                    } else if (response.startsWith("OK") && 
-                               (command.startsWith("POST") || command.startsWith("PIN") || 
-                                command.startsWith("UNPIN") || command.equals("SHAKE") || 
-                                command.equals("CLEAR"))) {
+                    } else if (response.startsWith("OK") &&
+                            (command.startsWith("POST") || command.startsWith("PIN") ||
+                                    command.startsWith("UNPIN") || command.equals("SHAKE") ||
+                                    command.equals("CLEAR"))) {
                         // Auto-refresh board after state-changing commands
                         SwingUtilities.invokeLater(() -> {
                             refreshBoardState();
@@ -197,7 +197,7 @@ public class ClientBoard extends JFrame {
                     // Fetch both notes and pins
                     String notesResponse = connection.sendCommand("GET");
                     String pinsResponse = connection.sendCommand("GET PINS");
-                    
+
                     // Parse both responses and merge on EDT
                     SwingUtilities.invokeLater(() -> {
                         parseAndMergeBoard(notesResponse, pinsResponse);
@@ -206,32 +206,6 @@ public class ClientBoard extends JFrame {
                     // Silently fail on auto-refresh
                 }
                 return null;
-            }
-        }.execute();
-    }
-
-    /**
-     * Refresh pins by executing GET PINS command
-     * Only updates pins, preserving existing notes
-     */
-    private void refreshPins() {
-        new SwingWorker<String, Void>() {
-            protected String doInBackground() {
-                return connection.sendCommand("GET PINS");
-            }
-
-            protected void done() {
-                try {
-                    String response = get();
-                    if (response != null && response.startsWith("OK")) {
-                        System.out.println("Got pins response: " + response);
-                        // Parse pins and merge with existing notes
-                        parseAndMergePins(response);
-                    }
-                } catch (Exception ex) {
-                    System.err.println("Error refreshing pins: " + ex.getMessage());
-                    ex.printStackTrace();
-                }
             }
         }.execute();
     }
@@ -256,7 +230,8 @@ public class ClientBoard extends JFrame {
             }
 
             // Update board canvas
-            System.out.println("parseAndMergeBoard: updating with " + notes.size() + " notes and " + pins.size() + " pins");
+            System.out.println(
+                    "parseAndMergeBoard: updating with " + notes.size() + " notes and " + pins.size() + " pins");
             boardNotes = notes;
             boardPins = pins;
             boardCanvas.updateBoardState(notes, pins);
@@ -278,7 +253,8 @@ public class ClientBoard extends JFrame {
             List<int[]> newPins = parsePins(pinsResponse);
 
             // Merge with existing notes
-            System.out.println("parseAndMergePins: updating " + boardNotes.size() + " notes with " + newPins.size() + " pins");
+            System.out.println(
+                    "parseAndMergePins: updating " + boardNotes.size() + " notes with " + newPins.size() + " pins");
             boardPins = newPins;
             boardCanvas.updateBoardState(boardNotes, boardPins);
             boardCanvas.repaint();
@@ -292,14 +268,15 @@ public class ClientBoard extends JFrame {
     /**
      * Parse notes from GET response
      * Format: OK <count>
-     *         NOTE x y color message
-     *         NOTE x y color message
+     * NOTE x y color message
+     * NOTE x y color message
      */
     private List<BoardCanvas.Note> parseNotes(String response) {
         List<BoardCanvas.Note> notes = new ArrayList<>();
         try {
             String[] lines = response.split("\n");
-            if (lines.length < 1 || !lines[0].startsWith("OK")) return notes;
+            if (lines.length < 1 || !lines[0].startsWith("OK"))
+                return notes;
 
             int count = 0;
             try {
@@ -313,7 +290,8 @@ public class ClientBoard extends JFrame {
 
             for (int i = 1; i < Math.min(lines.length, count + 1); i++) {
                 String line = lines[i].trim();
-                if (line.isEmpty()) continue;
+                if (line.isEmpty())
+                    continue;
 
                 String[] parts = line.split(" ");
                 if (parts.length >= 4 && parts[0].equals("NOTE")) {
@@ -338,14 +316,15 @@ public class ClientBoard extends JFrame {
     /**
      * Parse pins from GET PINS response
      * Format: OK <count>
-     *         PIN x y
-     *         PIN x y
+     * PIN x y
+     * PIN x y
      */
     private List<int[]> parsePins(String response) {
         List<int[]> pins = new ArrayList<>();
         try {
             String[] lines = response.split("\n");
-            if (lines.length < 1 || !lines[0].startsWith("OK")) return pins;
+            if (lines.length < 1 || !lines[0].startsWith("OK"))
+                return pins;
 
             int count = 0;
             try {
@@ -359,14 +338,15 @@ public class ClientBoard extends JFrame {
 
             for (int i = 1; i < Math.min(lines.length, count + 1); i++) {
                 String line = lines[i].trim();
-                if (line.isEmpty()) continue;
+                if (line.isEmpty())
+                    continue;
 
                 String[] parts = line.split(" ");
                 if (parts.length == 3 && parts[0].equals("PIN")) {
                     try {
                         int x = Integer.parseInt(parts[1]);
                         int y = Integer.parseInt(parts[2]);
-                        pins.add(new int[]{x, y});
+                        pins.add(new int[] { x, y });
                     } catch (NumberFormatException e) {
                         // Skip malformed line
                     }

@@ -90,7 +90,7 @@ public class ProtocolHandler {
             if (part.startsWith("color=")) {
                 colorFilter = part.substring(6);
             } else if (part.startsWith("contains=")) {
-                // contains=x y format
+                // contains=x y format - per RFC requires both coordinates
                 try {
                     String coords = part.substring(9);
                     String[] xy = coords.split("\\s+");
@@ -100,7 +100,13 @@ public class ProtocolHandler {
                     } else if (i + 1 < parts.length) {
                         // Handle "contains= x y" with space after =
                         containsX = Integer.parseInt(coords);
+                        if (i + 1 >= parts.length) {
+                            return ProtocolResponse.error("INVALID_FORMAT",
+                                    "contains= requires both x and y coordinates");
+                        }
                         containsY = Integer.parseInt(parts[++i]);
+                    } else {
+                        return ProtocolResponse.error("INVALID_FORMAT", "contains= requires both x and y coordinates");
                     }
                 } catch (NumberFormatException e) {
                     return ProtocolResponse.error("INVALID_FORMAT", "Invalid contains coordinates");
@@ -138,10 +144,6 @@ public class ProtocolHandler {
 
             String error = board.addPin(x, y);
             if (error != null) {
-                // Provide appropriate error message based on error code
-                if (error.equals("PIN_ALREADY_EXISTS")) {
-                    return ProtocolResponse.error(error, "Pin already exists at this coordinate");
-                }
                 return ProtocolResponse.error(error, "Cannot place pin");
             }
 

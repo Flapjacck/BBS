@@ -29,10 +29,10 @@ public class PostHandler {
      */
     public static ProtocolResponse handle(Board board, String[] parts) {
         // Validate parameter count per RFC syntax: POST <x> <y> <color> <message>
-        // Minimum: POST x y color message = 5 parts
-        if (parts.length < 5) {
+        // Allow empty message: POST x y color = 4 parts minimum
+        if (parts.length < 4) {
             return ProtocolResponse.error("INVALID_FORMAT",
-                    "POST requires: <x> <y> <color> <message>");
+                    "POST requires: <x> <y> <color> [message]");
         }
 
         try {
@@ -41,7 +41,7 @@ public class PostHandler {
             int y = Integer.parseInt(parts[2]);
             String color = parts[3].toLowerCase();
 
-            // Reconstruct message
+            // Reconstruct message (allow empty message per RFC)
             StringBuilder messageBuilder = new StringBuilder();
             for (int i = 4; i < parts.length; i++) {
                 if (i > 4)
