@@ -6,8 +6,8 @@ import java.util.List;
 public class ClientBoard extends JFrame {
     private ClientConnection connection;
     private JTextArea outputArea;
-    private JTextField postX, postY, postMsg, getColor, getX, getY, getRef, pinX, pinY;
-    private JComboBox<String> postColor;
+    private JTextField postX, postY, postMsg, getX, getY, getRef, pinX, pinY;
+    private JComboBox<String> postColor, getColour;
     private BoardCanvas boardCanvas;
     private static final String[] COLORS = { "yellow", "blue", "green", "pink", "orange", "purple", "white" };
 
@@ -50,9 +50,11 @@ public class ClientBoard extends JFrame {
         // GET panel
         JPanel get = new JPanel(new FlowLayout(FlowLayout.LEFT));
         get.add(new JLabel("GET:"));
-        get.add(new JLabel("Color:"));
-        get.add(getColor = new JTextField(5));
-        get.add(new JLabel("Contains:"));
+        get.add(new JLabel("Colour:"));
+        get.add(getColour = new JComboBox<>(COLORS));
+        getColour.insertItemAt("", 0);
+        getColour.setSelectedIndex(0);
+        get.add(new JLabel("Contains (X,Y):"));
         get.add(getX = new JTextField(3));
         get.add(getY = new JTextField(3));
         get.add(new JLabel("RefersTo:"));
@@ -100,7 +102,7 @@ public class ClientBoard extends JFrame {
         outputArea = new JTextArea();
         outputArea.setEditable(false);
         outputArea.setText("=== Server Response Log ===\n");
-        outputArea.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        outputArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
         JScrollPane scroll = new JScrollPane(outputArea);
         scroll.setPreferredSize(new Dimension(400, 200));
 
@@ -132,8 +134,8 @@ public class ClientBoard extends JFrame {
 
     private void executeGet() {
         StringBuilder cmd = new StringBuilder("GET");
-        if (!getColor.getText().isEmpty())
-            cmd.append(" color=").append(getColor.getText());
+        if (getColour.getSelectedIndex() > 0)
+            cmd.append(" color=").append(getColour.getSelectedItem());
         if (!getX.getText().isEmpty() && !getY.getText().isEmpty())
             cmd.append(" contains=").append(getX.getText()).append(" ").append(getY.getText());
         if (!getRef.getText().isEmpty())
