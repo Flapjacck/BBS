@@ -67,12 +67,12 @@ public class ProtocolHandler {
      * [refersTo=<substring>]
      */
     private ProtocolResponse handleGet(String[] parts) {
-        // Special case: GET PINS
+        // Special case: GET PINS - per RFC Section 8.1
         if (parts.length == 2 && parts[1].equalsIgnoreCase("PINS")) {
             java.util.List<int[]> pins = board.getPins();
             StringBuilder response = new StringBuilder("OK " + pins.size());
             for (int[] pin : pins) {
-                response.append("\n").append(pin[0]).append(" ").append(pin[1]);
+                response.append("\nPIN ").append(pin[0]).append(" ").append(pin[1]);
             }
             return ProtocolResponse.okWithData(response.toString());
         }
@@ -138,6 +138,10 @@ public class ProtocolHandler {
 
             String error = board.addPin(x, y);
             if (error != null) {
+                // Provide appropriate error message based on error code
+                if (error.equals("PIN_ALREADY_EXISTS")) {
+                    return ProtocolResponse.error(error, "Pin already exists at this coordinate");
+                }
                 return ProtocolResponse.error(error, "Cannot place pin");
             }
 

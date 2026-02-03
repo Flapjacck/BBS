@@ -113,12 +113,20 @@ public class Board {
 
     /**
      * Add pin at coordinate (PIN). Pin must be within at least one note.
+     * Only one pin allowed per coordinate (no duplicates).
      * Thread-safe.
      */
     public synchronized String addPin(int x, int y) {
         // Validate coordinates are non-negative per RFC Section 4.1
         if (x < 0 || y < 0) {
             return "OUT_OF_BOUNDS";
+        }
+
+        // Check if pin already exists at this coordinate
+        for (int[] existingPin : pins) {
+            if (existingPin[0] == x && existingPin[1] == y) {
+                return "PIN_ALREADY_EXISTS";
+            }
         }
 
         // Check if pin is within at least one note per RFC Section 9.1
