@@ -24,18 +24,33 @@ public class ClientConnection {
             socket = new Socket(HOST, PORT);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
-            
+
             // Read initial board configuration from server
             String config = in.readLine();
             if (config != null && config.startsWith("BOARD_CONFIG")) {
-                // Parse and store board configuration if needed
+                // Parse and validate board configuration per RFC
                 // Format: BOARD_CONFIG width height noteWidth noteHeight colors...
                 String[] parts = config.split(" ");
                 if (parts.length >= 5) {
-                    // Board config received successfully
+                    try {
+                        int serverWidth = Integer.parseInt(parts[1]);
+                        int serverHeight = Integer.parseInt(parts[2]);
+                        int serverNoteWidth = Integer.parseInt(parts[3]);
+                        int serverNoteHeight = Integer.parseInt(parts[4]);
+
+                        // Validate dimensions match expected values
+                        if (serverWidth != 800 || serverHeight != 600 ||
+                                serverNoteWidth != 100 || serverNoteHeight != 100) {
+                            System.err.println("Warning: Server board dimensions differ from client expectations");
+                            System.err.println("Server: " + serverWidth + "x" + serverHeight + ", notes: " +
+                                    serverNoteWidth + "x" + serverNoteHeight);
+                        }
+                    } catch (NumberFormatException e) {
+                        System.err.println("Warning: Invalid BOARD_CONFIG format from server");
+                    }
                 }
             }
-            
+
             connected = true;
             return true;
         } catch (IOException e) {

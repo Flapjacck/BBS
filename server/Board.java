@@ -122,10 +122,11 @@ public class Board {
             return "OUT_OF_BOUNDS";
         }
 
-        // Check if pin already exists at this coordinate
+        // Check if pin already exists at this coordinate - per RFC, silently allow
+        // duplicates
         for (int[] existingPin : pins) {
             if (existingPin[0] == x && existingPin[1] == y) {
-                return "PIN_ALREADY_EXISTS";
+                return null; // Already exists, no error per RFC
             }
         }
 
