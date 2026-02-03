@@ -24,6 +24,18 @@ public class ClientConnection {
             socket = new Socket(HOST, PORT);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
+            
+            // Read initial board configuration from server
+            String config = in.readLine();
+            if (config != null && config.startsWith("BOARD_CONFIG")) {
+                // Parse and store board configuration if needed
+                // Format: BOARD_CONFIG width height noteWidth noteHeight colors...
+                String[] parts = config.split(" ");
+                if (parts.length >= 5) {
+                    // Board config received successfully
+                }
+            }
+            
             connected = true;
             return true;
         } catch (IOException e) {
